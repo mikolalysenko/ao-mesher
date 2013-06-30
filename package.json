@@ -1,0 +1,38 @@
+{
+  "name": "ao-mesher",
+  "version": "0.0.0",
+  "description": "Voxel ambient occlusion mesher",
+  "main": "mesh.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "ndarray": "~1.0.1",
+    "greedy-mesher": "~1.0.0",
+    "ndarray-stencil": "~0.1.1",
+    "typedarray-pool": "~0.1.1"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mikolalysenko/ao-mesher.git"
+  },
+  "keywords": [
+    "voxel",
+    "ambient",
+    "occlusion",
+    "mesher",
+    "ndarray"
+  ],
+  "author": "Mikola Lysenko",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "defafd90223c6ea56ac1c2f38d3b2aecc27a6972",
+  "bugs": {
+    "url": "https://github.com/mikolalysenko/ao-mesher/issues"
+  }
+}
