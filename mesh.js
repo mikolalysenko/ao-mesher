@@ -70,11 +70,13 @@ function generateSurfaceVoxel(
   v100, v101, v102,
   v110, v111, v112,
   v120, v121, v122) {
-  if(v111 && !v011) {
+  var t0 = !(v011 & OPAQUE_BIT)
+    , t1 = !(v111 & OPAQUE_BIT)
+  if(v111 && (!v011 || (t0 && !t1))) {
     return v011 | FLIP_BIT | facetAO(v000, v001, v002,
                                      v010,       v012,
                                      v020, v021, v022)
-  } else if(v011 && !v111) {
+  } else if(v011 && (!v111 || (t1 && !t0))  ) {
     return v111 | facetAO(v100, v101, v102,
                           v110,       v112,
                           v120, v121, v122)
@@ -468,7 +470,7 @@ function computeMesh(array) {
   var rptr = meshBuilder.ptr
   meshBuilder.buffer = pool.mallocUint8(1024)
   meshBuilder.ptr = 0
-  return { buffer: rbuffer, length: rptr }
+  return rbuffer.subarray(0, rptr)
 }
 
 module.exports = computeMesh
