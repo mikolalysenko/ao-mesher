@@ -5,7 +5,7 @@ var compileStencil = require("ndarray-stencil")
 var compileMesher = require("greedy-mesher")
 var pool = require("typedarray-pool")
 
-var OPAQUE_BIT      =(1<<15)
+var OPAQUE_BIT      = (1<<15)
 var VOXEL_MASK      = (1<<16)-1
 var AO_SHIFT        = 16
 var AO_BITS         = 2
@@ -18,7 +18,7 @@ var VERTEX_SIZE     = 8
 //
 // Vertex format:
 //
-//  x, y, z, ambient occlusion, normal dir, texture x, texture y
+//  x, y, z, ambient occlusion, nx, ny, nz, tex_id
 //
 //
 // Voxel format:
@@ -46,8 +46,8 @@ function vertexAO(s1, s2, c) {
 
 //Calculates the ambient occlusion bit mask for a facet
 function facetAO(a00, a01, a02,
-                a10,      a12,
-                a20, a21, a22) {
+                 a10,      a12,
+                 a20, a21, a22) {
   var s00 = (a00&OPAQUE_BIT) ? 1 : 0
     , s01 = (a01&OPAQUE_BIT) ? 1 : 0
     , s02 = (a02&OPAQUE_BIT) ? 1 : 0
@@ -70,11 +70,11 @@ function generateSurfaceVoxel(
   v100, v101, v102,
   v110, v111, v112,
   v120, v121, v122) {
-  if(v011 && !v111) {
+  if(v111 && !v011) {
     return v011 | FLIP_BIT | facetAO(v000, v001, v002,
                                      v010,       v012,
                                      v020, v021, v022)
-  } else if(v111 && !v011) {
+  } else if(v011 && !v111) {
     return v111 | facetAO(v100, v101, v102,
                           v110,       v112,
                           v120, v121, v122)
@@ -111,7 +111,7 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var d = this.d|0
 
   //Grow buffer if we exceed capacity
-  if(ptr + 4*VERTEX_SIZE > buffer.length) {
+  if(ptr + 6*VERTEX_SIZE > buffer.length) {
     var tmp = pool.mallocUint8(2*buffer.length);
     tmp.set(buffer)
     pool.freeUint8(buffer)
@@ -119,102 +119,156 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
     this.buffer = buffer
   }
 
-  var side = d + (val&FLIP_BIT)?3:0
-  var texnum = voxelTexture(val&VOXEL_MASK, side)
-  var tex_s = texnum&TEXTURE_MASK
-  var tex_t = (texnum>>>TEXTURE_SHIFT)&TEXTURE_MASK
+  var flip = !!(val & FLIP_BIT)
+  var nv = flip ? -1 : 1
+  var nx = 0, ny = 0, nz = 0
+  if(d === 0) {
+    nx = nv
+  } else if(d === 1) {
+    ny = nv
+  } else if(d === 2) {
+    nz = nv
+  }
+  
+  var a00 = 1+((val>>>AO_SHIFT)&AO_MASK)
+  var a10 = 1+((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)
+  var a11 = 1+((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)
+  var a01 = 1+((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)
+  
+  var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
   
   //Check if flipped
-  if(val & FLIP_BIT) {
-  
+  if(!flip) {
+    buffer[ptr+u] = lo_x
+    buffer[ptr+v] = hi_y
+    buffer[ptr+d] = z
+    buffer[ptr+3] = a01
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
+
+    ptr += 8
+    
     buffer[ptr+u] = lo_x
     buffer[ptr+v] = lo_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>AO_SHIFT)&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a00
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
+    
+    ptr += 8
+
+    buffer[ptr+u] = hi_x
+    buffer[ptr+v] = hi_y
+    buffer[ptr+d] = z
+    buffer[ptr+3] = a11
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
     
     ptr += 8
     
     buffer[ptr+u] = hi_x
     buffer[ptr+v] = lo_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a10
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
 
     ptr += 8
     
     buffer[ptr+u] = hi_x
     buffer[ptr+v] = hi_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a11
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
     
     ptr += 8
     
     buffer[ptr+u] = lo_x
-    buffer[ptr+v] = hi_y
+    buffer[ptr+v] = lo_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
-
+    buffer[ptr+3] = a00
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
+    
     ptr += 8
-  
   } else {
-    
     buffer[ptr+u] = lo_x
     buffer[ptr+v] = lo_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>AO_SHIFT)&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a00
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
     
     ptr += 8
     
     buffer[ptr+u] = lo_x
     buffer[ptr+v] = hi_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a01
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
 
     ptr += 8
     
     buffer[ptr+u] = hi_x
     buffer[ptr+v] = hi_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a11
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
+    
+    ptr += 8
+    
+    buffer[ptr+u] = hi_x
+    buffer[ptr+v] = hi_y
+    buffer[ptr+d] = z
+    buffer[ptr+3] = a11
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
     
     ptr += 8
 
     buffer[ptr+u] = hi_x
     buffer[ptr+v] = lo_y
     buffer[ptr+d] = z
-    buffer[ptr+3] = (val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK
-    buffer[ptr+4] = side
-    buffer[ptr+5] = tex_s
-    buffer[ptr+6] = tex_t
-    buffer[ptr+7] = 0
+    buffer[ptr+3] = a10
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
 
+    ptr += 8
+    
+    buffer[ptr+u] = lo_x
+    buffer[ptr+v] = lo_y
+    buffer[ptr+d] = z
+    buffer[ptr+3] = a00
+    buffer[ptr+4] = nx
+    buffer[ptr+5] = ny
+    buffer[ptr+6] = nz
+    buffer[ptr+7] = tex_id
+    
     ptr += 8
   }
   
@@ -254,7 +308,7 @@ function computeMesh(array) {
     //Generate slices
     var nx = st.shape[0]|0
     for(var i=0; i<nx-1; ++i) {
-      meshBuilder.z = i
+      meshBuilder.z = i+1
       meshSlice(slice)
       slice.offset += st.stride[0]
     }
