@@ -140,139 +140,279 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   
   var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
   
-  //Check if flipped
-  if(!flip) {
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a01
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
+  var flip_diag = (a00 + a11 < a10 + a01)
 
-    ptr += 8
-    
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a00
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
+  if(flip_diag) {
+    if(flip) {
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
 
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a11
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
-    
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a10
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
 
-    ptr += 8
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+    } else {
     
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a11
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
-    
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a00
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+    }
   } else {
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a00
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
-    
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a01
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
+    //Check if flipped
+    if(!flip) {
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
 
-    ptr += 8
-    
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a11
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
-    
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = hi_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a11
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
 
-    buffer[ptr+u] = hi_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a10
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
 
-    ptr += 8
-    
-    buffer[ptr+u] = lo_x
-    buffer[ptr+v] = lo_y
-    buffer[ptr+d] = z
-    buffer[ptr+3] = a00
-    buffer[ptr+4] = nx
-    buffer[ptr+5] = ny
-    buffer[ptr+6] = nz
-    buffer[ptr+7] = tex_id
-    
-    ptr += 8
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+    } else {
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a01
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+      
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = hi_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a11
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+
+      buffer[ptr+u] = hi_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a10
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+
+      ptr += 8
+      
+      buffer[ptr+u] = lo_x
+      buffer[ptr+v] = lo_y
+      buffer[ptr+d] = z
+      buffer[ptr+3] = a00
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
+      buffer[ptr+7] = tex_id
+      
+      ptr += 8
+    }
   }
   
   this.ptr = ptr
