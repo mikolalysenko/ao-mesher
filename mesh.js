@@ -120,14 +120,17 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   }
 
   var flip = !!(val & FLIP_BIT)
-  var nv = flip ? -1 : 1
+  var nv = flip ? 127 : 129
   var nx = 0, ny = 0, nz = 0
   if(d === 0) {
     nx = nv
+    ny = nz = 128
   } else if(d === 1) {
     ny = nv
-  } else if(d === 2) {
+    nx = nz = 128
+  } else {
     nz = nv
+    nx = ny = 128
   }
   
   var a00 = 1+((val>>>AO_SHIFT)&AO_MASK)
