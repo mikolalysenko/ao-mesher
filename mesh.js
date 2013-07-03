@@ -132,7 +132,7 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
   
   if(a00 + a11 < a10 + a01) {
-    if(flip) {
+    if(!flip) {
       buffer[ptr+u] = lo_x
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
@@ -269,7 +269,7 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
     }
   } else {
     //Check if flipped
-    if(!flip) {
+    if(flip) {
       buffer[ptr+u] = lo_x
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
@@ -431,8 +431,8 @@ function computeMesh(array) {
     var slice = st.pick(0)
 
     meshBuilder.d = d
-    meshBuilder.u = u
-    meshBuilder.v = v
+    meshBuilder.u = v
+    meshBuilder.v = u
     
     //Compute surface stencil for this side
     surfaceStencil(st, array.transpose(d, u, v))
