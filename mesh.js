@@ -73,11 +73,11 @@ function generateSurfaceVoxel(
   var t0 = !(v011 & OPAQUE_BIT)
     , t1 = !(v111 & OPAQUE_BIT)
   if(v111 && (!v011 || (t0 && !t1))) {
-    return v011 | FLIP_BIT | facetAO(v000, v001, v002,
+    return v111 | FLIP_BIT | facetAO(v000, v001, v002,
                                      v010,       v012,
                                      v020, v021, v022)
   } else if(v011 && (!v111 || (t1 && !t0))  ) {
-    return v111 | facetAO(v100, v101, v102,
+    return v011 | facetAO(v100, v101, v102,
                           v110,       v112,
                           v120, v121, v122)
   }
