@@ -147,14 +147,14 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
     nz = sign
   }
   
-  var flipAO = a00 + a11 > a10 + a01
+  var flipAO = a00 + a11 >= a10 + a01
   
   a00 = AO_TABLE[a00]
   a01 = AO_TABLE[a01]
   a11 = AO_TABLE[a11]
   a10 = AO_TABLE[a10]
   
-  if(flipAO) {
+  if(!flipAO) {
     if(!flip) {
       buffer[ptr+u] = lo_x
       buffer[ptr+v] = lo_y
