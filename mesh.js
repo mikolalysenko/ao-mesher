@@ -130,10 +130,10 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var flip = !!(val & FLIP_BIT)
   var side = d + flip ? 3 : 0
   
-  var a00 = ((val>>>AO_SHIFT)&AO_MASK)
-  var a10 = ((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)
-  var a11 = ((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)
-  var a01 = ((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)
+  var a00 = AO_TABLE[((val>>>AO_SHIFT)&AO_MASK)]
+  var a10 = AO_TABLE[((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)]
+  var a11 = AO_TABLE[((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)]
+  var a01 = AO_TABLE[((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)]
   
   var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
   
@@ -147,14 +147,13 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
     nz = sign
   }
   
-  var flipAO = a00 + a11 >= a10 + a01
+  var flipAO = a00 + a11 < a10 + a01
   
-  a00 = AO_TABLE[a00]
-  a01 = AO_TABLE[a01]
-  a11 = AO_TABLE[a11]
-  a10 = AO_TABLE[a10]
+  if(a00 + a11 === a10 + a01) {
+    flipAO = Math.max(a00,a11) > Math.max(a10,a01)
+  }
   
-  if(!flipAO) {
+  if(flipAO) {
     if(!flip) {
       buffer[ptr+u] = lo_x
       buffer[ptr+v] = lo_y
