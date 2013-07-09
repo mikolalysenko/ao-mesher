@@ -150,7 +150,7 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var flipAO = a00 + a11 < a10 + a01
   
   if(a00 + a11 === a10 + a01) {
-    flipAO = Math.max(a00,a11) > Math.max(a10,a01)
+    flipAO = Math.max(a00,a11) < Math.max(a10,a01)
   }
   
   if(flipAO) {
