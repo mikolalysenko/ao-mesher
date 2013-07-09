@@ -18,7 +18,7 @@ var VERTEX_SIZE     = 8
 //
 // Vertex format:
 //
-//  x, y, z, ambient occlusion, side, tx, ty, tex_id
+//  x, y, z, ambient occlusion, normal_x, normal_y, normal_z, tex_id
 //
 //
 // Voxel format:
@@ -92,7 +92,10 @@ var surfaceStencil = compileStencil([
   [ 0, 1,-1], [ 0, 1, 0], [ 0, 1, 1],
   [ 1,-1,-1], [ 1,-1, 0], [ 1,-1, 1],
   [ 1, 0,-1], [ 1, 0, 0], [ 1, 0, 1],
-  [ 1, 1,-1], [ 1, 1, 0], [ 1, 1, 1]], generateSurfaceVoxel)
+  [ 1, 1,-1], [ 1, 1, 0], [ 1, 1, 1]],
+  generateSurfaceVoxel, {
+    sameOutput: true
+  })
 
 
 function MeshBuilder() {
@@ -103,6 +106,9 @@ function MeshBuilder() {
   this.v = 0
   this.d = 0
 }
+
+var AO_TABLE = new Uint8Array([0, 153, 204, 255])
+
 
 MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var buffer = this.buffer
@@ -124,22 +130,39 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var flip = !!(val & FLIP_BIT)
   var side = d + flip ? 3 : 0
   
-  var a00 = 1+((val>>>AO_SHIFT)&AO_MASK)
-  var a10 = 1+((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)
-  var a11 = 1+((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)
-  var a01 = 1+((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)
+  var a00 = ((val>>>AO_SHIFT)&AO_MASK)
+  var a10 = ((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)
+  var a11 = ((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)
+  var a01 = ((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)
   
   var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
   
-  if(a00 + a11 < a10 + a01) {
+  var nx=128, ny=128, nz=128
+  var sign = flip ? 127 : 129
+  if(d === 0) {
+    nx = sign
+  } else if(d === 1) {
+    ny = sign
+  } else if(d === 2) {
+    nz = sign
+  }
+  
+  var flipAO = a00 + a11 > a10 + a01
+  
+  a00 = AO_TABLE[a00]
+  a01 = AO_TABLE[a01]
+  a11 = AO_TABLE[a11]
+  a10 = AO_TABLE[a10]
+  
+  if(flipAO) {
     if(!flip) {
       buffer[ptr+u] = lo_x
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -148,9 +171,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -159,9 +182,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -170,9 +193,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -181,9 +204,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -192,9 +215,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -205,9 +228,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -216,9 +239,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -227,9 +250,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -238,9 +261,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -249,9 +272,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -260,9 +283,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -274,9 +297,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -285,9 +308,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -296,9 +319,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -307,9 +330,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -318,9 +341,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -329,9 +352,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -340,9 +363,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -351,9 +374,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a01
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -362,9 +385,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -373,9 +396,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = hi_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a11
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = hi_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -384,9 +407,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a10
-      buffer[ptr+4] = side
-      buffer[ptr+5] = hi_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
 
       ptr += 8
@@ -395,9 +418,9 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
       buffer[ptr+v] = lo_y
       buffer[ptr+d] = z
       buffer[ptr+3] = a00
-      buffer[ptr+4] = side
-      buffer[ptr+5] = lo_x
-      buffer[ptr+6] = lo_y
+      buffer[ptr+4] = nx
+      buffer[ptr+5] = ny
+      buffer[ptr+6] = nz
       buffer[ptr+7] = tex_id
       
       ptr += 8
@@ -417,9 +440,8 @@ var meshSlice = compileMesher({
 
 //Compute a mesh
 function computeMesh(array) {
-
-  var scratch = pool.mallocInt32(array.size)
-  var st0     = ndarray(scratch,array.shape.slice(0))
+  var shp = array.shape
+  var scratch = pool.mallocInt32((shp[0]-2)*(shp[1]-2)*(shp[2]-2))
   
   meshBuilder.ptr = 0
   for(var d=0; d<3; ++d) {
@@ -427,20 +449,20 @@ function computeMesh(array) {
     var v = (d+2)%3
     
     //Create slice
-    var st = st0.transpose(d, u, v)
+    var st = ndarray(scratch, [shp[d]-2, shp[u]-2, shp[v]-2])
     var slice = st.pick(0)
-
+    var nx = st.shape[0]|0
+    
     meshBuilder.d = d
     meshBuilder.u = v
     meshBuilder.v = u
     
     //Compute surface stencil for this side
-    surfaceStencil(st, array.transpose(d, u, v))
+    surfaceStencil(st, array.transpose(d, u, v).hi(nx-1))
     
     //Generate slices
-    var nx = st.shape[0]|0
-    for(var i=0; i<nx-1; ++i) {
-      meshBuilder.z = i+1
+    for(var i=0; i<nx; ++i) {
+      meshBuilder.z = i
       meshSlice(slice)
       slice.offset += st.stride[0]
     }
