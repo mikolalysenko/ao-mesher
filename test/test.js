@@ -18,8 +18,8 @@ var r = computeMesh(x)
 
 var start = Date.now()
 for(var i=0; i<1000; ++i) {
-  computeMesh(x)
-  //voxel.meshers.greedy(x.data, x.shape)
+  //computeMesh(x)
+  voxel.meshers.greedy(x.data, x.shape)
 }
 
 console.log(Date.now() - start)
