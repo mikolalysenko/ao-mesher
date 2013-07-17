@@ -14,12 +14,15 @@ fill(x, function(i,j,k) {
   return (a*a + b*b + c*c) ? 1<<15 : 0
 })
 
-var r = computeMesh(x)
-
-var start = Date.now()
-for(var i=0; i<1000; ++i) {
-  //computeMesh(x)
-  voxel.meshers.greedy(x.data, x.shape)
+for(var j=0; j<10; ++j) {
+  computeMesh(x)
 }
 
-console.log(Date.now() - start)
+setTimeout(function(){
+  var start = Date.now()
+  for(var i=0; i<1000; ++i) {
+    computeMesh(x)
+    //voxel.meshers.greedy(x.data, x.shape)
+  }
+  console.log(Date.now() - start)
+}, 10)

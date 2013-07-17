@@ -88,19 +88,14 @@ var surfaceStencil = (function() {
   function arg(name, lv, rv, count) {
     return { name: name, lvalue: lv, rvalue: rv, count: count}
   }
-  
   var empty_proc = { args:[], thisVars:[], localVars:[], body:"" }
-
-  var cwise_args = [ "scalar", "array", "array", "array" ]
-  
+  var cwise_args = [ "scalar", "array", "array", "array", "array" ]
   var cwise_arg_names = [
-    arg("func",false,true,3),
-    arg("o0",true,false,1),
-    arg("o1",true,false,1),
-    arg("o2",true,false,1) ]
-  
+    arg("_func",false,true,3),
+    arg("_o0",true,false,1),
+    arg("_o1",true,false,1),
+    arg("_o2",true,false,1) ]
   var cwise_body = [ ]
-  
   for(var d=0; d<3; ++d) {
     var u = (d+1) % 3
     var v = (d+2) % 3
@@ -109,50 +104,31 @@ var surfaceStencil = (function() {
     for(var dy=0; dy<=2; ++dy)
     for(var dx=0; dx<=2; ++dx) {
       var x = [dx,dy,dz]
-      expr.push(["a", x[v], x[u], x[d]].join(""))
+      expr.push(["_a", x[v], x[u], x[d]].join(""))
     }
-    cwise_body.push(["o", d, "=func(", expr.join(","), ")"].join(""))
+    cwise_body.push(["_o", d, "=_func(", expr.join(","), ")"].join(""))
   }
-  
   var cwise_body_str = cwise_body.join("\n")
-  
-  var wrapper_code = [ "'use strict'" ]
-  
-  var call_expr = [ "out0,out1,out2" ]
-  
   for(var dx=-1; dx<=1; ++dx)
   for(var dy=-1; dy<=1; ++dy)
   for(var dz=-1; dz<=1; ++dz) {
     if(dx === 1 && dy === 1 && dz === 1) {
       continue
     }
-  
-    cwise_args.push("array")
-    var carg_name = ["a", dx+1, dy+1, dz+1].join("")
-    cwise_arg_names.push(arg(carg_name, false, true, cwise_body_str.split(carg_name).length - 1))
-  
-    if(dx === -1 && dy === -1 && dz === -1) {
-      call_expr.push("inp")
-    } else {
-      call_expr.push(["inp.lo(", dx+1, ",", dy+1, ",", dz+1,")"].join(""))
+    if(!(dx === -1 && dy === -1 && dz === -1)) {
+      cwise_args.push({offset: [dx+1,dy+1,dz+1], array:3})
     }
+    var carg_name = ["_a", dx+1, dy+1, dz+1].join("")
+    cwise_arg_names.push(arg(carg_name, false, true, cwise_body_str.split(carg_name).length - 1))
   }
-  
-  wrapper_code.push(["func(", call_expr.join(","), ")"].join(""))
-  
-  var cwise_thunk = compileCWise({
+  return compileCWise({
     args: cwise_args,
     pre: empty_proc,
     body: {args: cwise_arg_names, body: cwise_body_str, thisVars: [], localVars: []},
     post: empty_proc,
-    funcName: "calcAO",
+    funcName: "calcAO"
   }).bind(undefined, generateSurfaceVoxel)
-  
-  //Compile wrapper
-  var wrapper = new Function("func", "out0", "out1", "out2", "inp", wrapper_code.join("\n"))
-  return wrapper.bind(undefined, cwise_thunk)
 })();
-
 
 function MeshBuilder() {
   this.buffer = pool.mallocUint8(1024)
