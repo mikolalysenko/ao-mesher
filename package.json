@@ -9,7 +9,7 @@
   "dependencies": {
     "ndarray": "~1.0.1",
     "greedy-mesher": "~1.0.0",
-    "cwise-compiler": "~0.0.0",
+    "cwise-compiler": "~0.1.0",
     "typedarray-pool": "~0.1.1"
   },
   "devDependencies": {
