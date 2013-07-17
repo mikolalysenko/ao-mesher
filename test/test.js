@@ -14,8 +14,6 @@ fill(x, function(i,j,k) {
   return (a*a + b*b + c*c) ? 1<<15 : 0
 })
 
-
-
 var r = computeMesh(x)
 
 var start = Date.now()

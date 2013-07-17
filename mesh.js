@@ -1,7 +1,7 @@
 "use strict"
 
 var ndarray = require("ndarray")
-var compileStencil = require("ndarray-stencil")
+var compileCWise = require("cwise-compiler")
 var compileMesher = require("greedy-mesher")
 var pool = require("typedarray-pool")
 
@@ -83,19 +83,75 @@ function generateSurfaceVoxel(
   }
 }
 
+//Compile surface stencil operator
+var surfaceStencil = (function() {
+  function arg(name, lv, rv, count) {
+    return { name: name, lvalue: lv, rvalue: rv, count: count}
+  }
+  
+  var empty_proc = { args:[], thisVars:[], localVars:[], body:"" }
 
-
-//Surface stencil operation
-var surfaceStencil = compileStencil([
-  [ 0,-1,-1], [ 0,-1, 0], [ 0,-1, 1],
-  [ 0, 0,-1], [ 0, 0, 0], [ 0, 0, 1],
-  [ 0, 1,-1], [ 0, 1, 0], [ 0, 1, 1],
-  [ 1,-1,-1], [ 1,-1, 0], [ 1,-1, 1],
-  [ 1, 0,-1], [ 1, 0, 0], [ 1, 0, 1],
-  [ 1, 1,-1], [ 1, 1, 0], [ 1, 1, 1]],
-  generateSurfaceVoxel, {
-    sameOutput: true
-  })
+  var cwise_args = [ "scalar", "array", "array", "array" ]
+  
+  var cwise_arg_names = [
+    arg("func",false,true,3),
+    arg("o0",true,false,1),
+    arg("o1",true,false,1),
+    arg("o2",true,false,1) ]
+  
+  var cwise_body = [ ]
+  
+  for(var d=0; d<3; ++d) {
+    var u = (d+1) % 3
+    var v = (d+2) % 3
+    var expr = []
+    for(var dz=0; dz<2; ++dz)
+    for(var dy=0; dy<=2; ++dy)
+    for(var dx=0; dx<=2; ++dx) {
+      var x = [dx,dy,dz]
+      expr.push(["a", x[v], x[u], x[d]].join(""))
+    }
+    cwise_body.push(["o", d, "=func(", expr.join(","), ")"].join(""))
+  }
+  
+  var cwise_body_str = cwise_body.join("\n")
+  
+  var wrapper_code = [ "'use strict'" ]
+  
+  var call_expr = [ "out0,out1,out2" ]
+  
+  for(var dx=-1; dx<=1; ++dx)
+  for(var dy=-1; dy<=1; ++dy)
+  for(var dz=-1; dz<=1; ++dz) {
+    if(dx === 1 && dy === 1 && dz === 1) {
+      continue
+    }
+  
+    cwise_args.push("array")
+    var carg_name = ["a", dx+1, dy+1, dz+1].join("")
+    cwise_arg_names.push(arg(carg_name, false, true, cwise_body_str.split(carg_name).length - 1))
+  
+    if(dx === -1 && dy === -1 && dz === -1) {
+      call_expr.push("inp")
+    } else {
+      call_expr.push(["inp.lo(", dx+1, ",", dy+1, ",", dz+1,")"].join(""))
+    }
+  }
+  
+  wrapper_code.push(["func(", call_expr.join(","), ")"].join(""))
+  
+  var cwise_thunk = compileCWise({
+    args: cwise_args,
+    pre: empty_proc,
+    body: {args: cwise_arg_names, body: cwise_body_str, thisVars: [], localVars: []},
+    post: empty_proc,
+    funcName: "calcAO",
+  }).bind(undefined, generateSurfaceVoxel)
+  
+  //Compile wrapper
+  var wrapper = new Function("func", "out0", "out1", "out2", "inp", wrapper_code.join("\n"))
+  return wrapper.bind(undefined, cwise_thunk)
+})();
 
 
 function MeshBuilder() {
@@ -108,7 +164,6 @@ function MeshBuilder() {
 }
 
 var AO_TABLE = new Uint8Array([0, 153, 204, 255])
-
 
 MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   var buffer = this.buffer
@@ -439,34 +494,51 @@ var meshSlice = compileMesher({
 
 //Compute a mesh
 function computeMesh(array) {
-  var shp = array.shape
-  var scratch = pool.mallocInt32((shp[0]-2)*(shp[1]-2)*(shp[2]-2))
+  var shp = array.shape.slice(0)
+  var nx = (shp[0]-2)|0
+  var ny = (shp[1]-2)|0
+  var nz = (shp[2]-2)|0
+  var sz = nx * ny * nz
+  var scratch0 = pool.mallocInt32(sz)
+  var scratch1 = pool.mallocInt32(sz)
+  var scratch2 = pool.mallocInt32(sz)
+  var rshp = [nx, ny, nz]
+  var ao0 = ndarray(scratch0, rshp)
+  var ao1 = ndarray(scratch1, rshp)
+  var ao2 = ndarray(scratch2, rshp)
   
+  //Calculate ao fields
+  surfaceStencil(ao0, ao1, ao2, array)
+  
+  //Build mesh slices
   meshBuilder.ptr = 0
+  
+  var buffers = [ao0, ao1, ao2]
   for(var d=0; d<3; ++d) {
     var u = (d+1)%3
     var v = (d+2)%3
     
     //Create slice
-    var st = ndarray(scratch, [shp[d]-2, shp[u]-2, shp[v]-2])
+    var st = buffers[d].transpose(d, u, v)
     var slice = st.pick(0)
-    var nx = st.shape[0]|0
+    var n = rshp[d]|0
     
     meshBuilder.d = d
     meshBuilder.u = v
     meshBuilder.v = u
     
-    //Compute surface stencil for this side
-    surfaceStencil(st, array.transpose(d, u, v).hi(nx-1))
-    
     //Generate slices
-    for(var i=0; i<nx; ++i) {
+    for(var i=0; i<n; ++i) {
       meshBuilder.z = i
       meshSlice(slice)
       slice.offset += st.stride[0]
     }
   }
-  pool.freeInt32(scratch)
+  
+  //Release buffers
+  pool.freeInt32(scratch0)
+  pool.freeInt32(scratch1)
+  pool.freeInt32(scratch2)
   
   //Release uint8 array if no vertices were allocated
   if(meshBuilder.ptr === 0) {
