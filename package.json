@@ -1,6 +1,6 @@
 {
   "name": "ao-mesher",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Voxel ambient occlusion mesher",
   "main": "mesh.js",
   "directories": {
