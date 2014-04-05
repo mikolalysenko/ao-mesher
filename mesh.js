@@ -159,14 +159,14 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   }
 
   var flip = !!(val & FLIP_BIT)
-  var side = d + flip ? 3 : 0
+  var side = d + (flip ? 3 : 0)
   
   var a00 = AO_TABLE[((val>>>AO_SHIFT)&AO_MASK)]
   var a10 = AO_TABLE[((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)]
   var a11 = AO_TABLE[((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)]
   var a01 = AO_TABLE[((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)]
   
-  var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0, this.voxelSideTextureIDs)
+  var tex_id = voxelTexture(val&VOXEL_MASK, side, this.voxelSideTextureIDs)
   
   var nx=128, ny=128, nz=128
   var sign = flip ? 127 : 129
