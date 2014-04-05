@@ -32,8 +32,8 @@ var VERTEX_SIZE     = 8
 //
 
 //Retrieves the texture for a voxel
-function voxelTexture(voxel, side) {
-  return voxel&0xff
+function voxelTexture(voxel, side, voxelSideTextureIDs) {
+  return voxelSideTextureIDs ? voxelSideTextureIDs.get(voxel&0xff, side) : voxel&0xff
 }
 
 //Calculates ambient occlusion level for a vertex
@@ -159,14 +159,14 @@ MeshBuilder.prototype.append = function(lo_x, lo_y, hi_x, hi_y, val) {
   }
 
   var flip = !!(val & FLIP_BIT)
-  var side = d + flip ? 3 : 0
+  var side = d + (flip ? 3 : 0)
   
   var a00 = AO_TABLE[((val>>>AO_SHIFT)&AO_MASK)]
   var a10 = AO_TABLE[((val>>>(AO_SHIFT+AO_BITS))&AO_MASK)]
   var a11 = AO_TABLE[((val>>>(AO_SHIFT+2*AO_BITS))&AO_MASK)]
   var a01 = AO_TABLE[((val>>>(AO_SHIFT+3*AO_BITS))&AO_MASK)]
   
-  var tex_id = voxelTexture(val&VOXEL_MASK, d + flip ? 3 : 0)
+  var tex_id = voxelTexture(val&VOXEL_MASK, side, this.voxelSideTextureIDs)
   
   var nx=128, ny=128, nz=128
   var sign = flip ? 127 : 129
@@ -469,7 +469,7 @@ var meshSlice = compileMesher({
 })
 
 //Compute a mesh
-function computeMesh(array) {
+function computeMesh(array, voxelSideTextureIDs) {
   var shp = array.shape.slice(0)
   var nx = (shp[0]-2)|0
   var ny = (shp[1]-2)|0
@@ -488,6 +488,7 @@ function computeMesh(array) {
   
   //Build mesh slices
   meshBuilder.ptr = 0
+  meshBuilder.voxelSideTextureIDs = voxelSideTextureIDs
   
   var buffers = [ao0, ao1, ao2]
   for(var d=0; d<3; ++d) {
