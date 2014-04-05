@@ -33,7 +33,7 @@ var VERTEX_SIZE     = 8
 
 //Retrieves the texture for a voxel
 function voxelTexture(voxel, side, voxelSideTextureIDs) {
-  return voxelSideTextureIDs.get(voxel&0xff, side)
+  return voxelSideTextureIDs ? voxelSideTextureIDs.get(voxel&0xff, side) : voxel&0xff
 }
 
 //Calculates ambient occlusion level for a vertex
